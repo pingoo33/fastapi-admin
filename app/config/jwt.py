@@ -44,7 +44,7 @@ def get_subject(access_token: str, refresh_token: str):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='다시 로그인 해주세요.')
 
 
-def create_access_token(user_id: str):
+def create_access_token(user_id: int):
     access_token_expires = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token_to_encode = {
         'user_id': user_id,
@@ -54,7 +54,7 @@ def create_access_token(user_id: str):
     return jwt.encode(access_token_to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM), access_token_expires
 
 
-def create_refresh_token(user_id: str):
+def create_refresh_token(user_id: int):
     refresh_token_expires = datetime.utcnow() + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
     refresh_token_to_encode = {
         'user_id': user_id,
@@ -64,7 +64,7 @@ def create_refresh_token(user_id: str):
     return jwt.encode(refresh_token_to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM), refresh_token_expires
 
 
-def create_jwt(user_id: str):
+def create_jwt(user_id: int):
     access_token, access_exp = create_access_token(user_id)
     refresh_token, refresh_exp = create_refresh_token(user_id)
 

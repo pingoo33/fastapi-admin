@@ -26,7 +26,7 @@
                 }),
                 dataType: 'json',
                 success: function () {
-                    location.reload();
+                    location.replace("/admin/");
                 },
                 error: function (res) {
                     alert(res.responseJSON.message);
@@ -39,7 +39,7 @@
 
 <div class="wrapper" style="width: 500px; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%)">
     <div class="text-center">
-        <img src="" style="width: 185px;" alt="logo">
+<!--        <img src="" style="width: 185px;" alt="logo">-->
         <h4 class="mt-1 mb-5 pb-1">Admin page</h4>
     </div>
     <!-- Email input -->

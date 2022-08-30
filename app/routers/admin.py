@@ -1,14 +1,13 @@
-from typing import Optional
-
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Cookie, Request, status
+from fastapi import APIRouter, Depends, Request, status, Cookie, HTTPException
+from fastapi.responses import RedirectResponse
 from fastapi_utils.cbv import cbv
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.responses import JSONResponse, RedirectResponse
+from starlette.responses import JSONResponse
 from starlette.templating import Jinja2Templates
 
 from app.config.config import conf
-from app.config.jwt import get_subject, delete_jwt
+from app.config.jwt import AdminJWTProvider, AuthenticationSubject, get_subject, add_jwt, delete_jwt
 from app.container import Container, db
 from app.service.admin import AdminService
 from app.model.admin import AdminSignInRequestDto
@@ -27,20 +26,26 @@ class AdminController:
     @router.get('/')
     async def get_home(self,
                        request: Request,
-                       access_token: Optional[str] = Cookie(None),
-                       refresh_token: Optional[str] = Cookie(None)):
-        if access_token is not None and refresh_token is not None:
-            try:
-                get_subject(access_token, refresh_token)
-            except Exception:
-                response = RedirectResponse(url='/admin/', status_code=status.HTTP_303_SEE_OTHER)
-                return delete_jwt(response)
+                       access_token: str = Cookie(None),
+                       refresh_token: str = Cookie(None)):
+        try:
+            get_subject(access_token, refresh_token)
+        except HTTPException:
+            return RedirectResponse(url="/admin/sign-in", status_code=status.HTTP_303_SEE_OTHER)
 
-            return templates.TemplateResponse('index.html',
-                                              {'request': request})
-        else:
-            return templates.TemplateResponse('admin_signin.html',
-                                              {'request': request})
+        return templates.TemplateResponse('index.html',
+                                          {'request': request})
+
+    @router.get('/sign-in')
+    async def get_sign_in_page(self, request: Request):
+        return templates.TemplateResponse('admin_signin.html',
+                                          {'request': request})
+
+    @router.get('/me')
+    async def retrieve_admin(self,
+                             session: AsyncSession = Depends(db.get_db),
+                             auth: AuthenticationSubject = Depends(AdminJWTProvider())):
+        return await self.admin_service.retrieve_admin(session, auth.subject_id)
 
     @router.post('/sign-in')
     async def sign_in(self,
@@ -49,7 +54,11 @@ class AdminController:
         access_token, refresh_token = await self.admin_service.sign_in(session, req)
 
         response = JSONResponse(content={}, status_code=status.HTTP_200_OK)
-        response.set_cookie(key='access_token', value=access_token)
-        response.set_cookie(key='refresh_token', value=refresh_token)
+        response = add_jwt(response, access_token, refresh_token)
 
         return response
+
+    @router.get('/sign-out')
+    async def sign_out(self):
+        response = RedirectResponse(url='/admin/sign-in', status_code=status.HTTP_303_SEE_OTHER)
+        return delete_jwt(response)

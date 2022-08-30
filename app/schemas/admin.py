@@ -1,11 +1,9 @@
-import uuid
-
 from sqlalchemy import (
     Column,
     String,
+    Integer,
     select
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.conn import Base
@@ -13,14 +11,14 @@ from app.schemas.conn import Base
 
 class Admin(Base):
     __tablename__ = "tb_admin"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Integer, primary_key=True, index=True)
     email = Column(String(length=50), nullable=False, unique=True)
     password = Column(String(length=100), nullable=False)
 
 
 class AdminRepository:
     @staticmethod
-    async def find_by_id(session: AsyncSession, admin_id: str):
+    async def find_by_id(session: AsyncSession, admin_id: int):
         result = await session.execute(select(Admin).where(Admin.id == admin_id))
         return result.scalars().one_or_none()
 

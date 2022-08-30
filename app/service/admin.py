@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config.jwt import create_jwt
-from app.model.admin import AdminSignInRequestDto
+from app.model.admin import AdminSignInRequestDto, AdminResponseDto
 from app.schemas.admin import AdminRepository
 
 
@@ -19,3 +19,10 @@ class AdminService:
         token = create_jwt(str(admin.id))
 
         return token["access_token"], token["refresh_token"]
+
+    async def retrieve_admin(self, session: AsyncSession, admin_id: int):
+        admin = await self.admin_repository.find_by_id(session, admin_id)
+
+        return AdminResponseDto(
+            email=admin.email
+        )

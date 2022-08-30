@@ -1,5 +1,6 @@
 import asyncio
 
+import nest_asyncio
 import uvicorn
 from fastapi import FastAPI, HTTPException
 
@@ -11,6 +12,7 @@ from app.config.consts import SESSION_SECRET_KEY
 from app.container import Container, db
 from app.routers import admin
 
+nest_asyncio.apply()
 
 """ Initialize Database """
 asyncio.run(db.create_database())
