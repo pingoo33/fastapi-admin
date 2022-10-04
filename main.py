@@ -2,15 +2,16 @@ import asyncio
 
 import nest_asyncio
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.responses import JSONResponse
 
+from app.common.error.handler import add_http_exception_handler
+from app.config import auth
 from app.config.consts import SESSION_SECRET_KEY
 from app.container import Container, db
-from app.routers import admin
+from app.routers import admin, index
 
 nest_asyncio.apply()
 
@@ -23,12 +24,15 @@ def create_app() -> FastAPI:
     container = Container()
 
     """ Define Container """
-    container.wire(modules=[admin])
+    container.wire(modules=[auth, index, admin])
     app.container = container
 
     """ Define Routers """
+    app.include_router(index.router)
+
     app.include_router(admin.router, prefix="/admin")
 
+    """ Define middlewares """
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -36,17 +40,15 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"]
     )
-
     app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY)
+
+    """ Define exception handler """
+    add_http_exception_handler(app)
+
     return app
 
 
 app = create_app()
-
-
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc):
-    return JSONResponse(content={"message": str(exc.detail)}, status_code=exc.status_code)
 
 
 if __name__ == "__main__":

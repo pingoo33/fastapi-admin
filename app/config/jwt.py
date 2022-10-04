@@ -1,47 +1,11 @@
 from datetime import datetime, timedelta
 
-from fastapi import status, HTTPException, Request, Cookie
 from jose import jwt
 
 from app.config.consts import JWT_ALGORITHM, JWT_SECRET_KEY
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 43200
 REFRESH_TOKEN_EXPIRE_MINUTES = 172800
-
-
-class AuthenticationSubject:
-    def __init__(self, subject_id, access_token, access_expire, refresh_token, refresh_expire):
-        self.subject_id = subject_id
-        self.access_token = access_token
-        self.access_expire = access_expire
-        self.refresh_token = refresh_token
-        self.refresh_expire = refresh_expire
-
-
-def get_subject(access_token: str, refresh_token: str):
-    try:
-        payload_access = jwt.decode(access_token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-        try:
-            payload_refresh = jwt.decode(refresh_token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='다시 로그인 해주세요.')
-        except Exception:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='다시 로그인 해주세요.')
-        return AuthenticationSubject(payload_access['user_id'],
-                                     "", payload_access['exp'],
-                                     "", payload_refresh['exp'])
-    except jwt.ExpiredSignatureError:
-        try:
-            payload = jwt.decode(refresh_token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-            access_token, access_expire = create_access_token(payload['user_id'])
-            refresh_token, refresh_expire = create_refresh_token(payload['user_id'])
-            return AuthenticationSubject(payload['user_id'], access_token, access_expire, refresh_token, refresh_expire)
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='다시 로그인 해주세요.')
-        except Exception:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='다시 로그인 해주세요.')
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='다시 로그인 해주세요.')
 
 
 def create_access_token(user_id: int):
@@ -88,11 +52,3 @@ def delete_jwt(response):
     response.delete_cookie(key='refresh_token')
 
     return response
-
-
-class AdminJWTProvider:
-    async def __call__(self,
-                       request: Request,
-                       access_token: str = Cookie(None),
-                       refresh_token: str = Cookie(None)):
-        return get_subject(access_token, refresh_token)
